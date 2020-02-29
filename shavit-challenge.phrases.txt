@@ -1,0 +1,69 @@
+"Phrases"
+{	
+	"Challenge1"
+	{
+		"#format"   "{1:s}"
+		"en"        "[{green}RACE{default}] Challenge request sent to {darkblue}{1}"
+	}
+	"Challenge2"
+	{
+		"#format"   "{1:s}"
+		"en"        "[{green}RACE{default}] {1} challenged you. You have 20 seconds to {purple}!accept"
+	}
+	"Challenge3"
+	{
+		"en"        "[{green}RACE{default}] Challenge accepted."
+	}
+	"Challenge4"
+	{
+		"#format"   "{1:s},{2:s}"
+		"en"        "[{green}RACE{default}] {darkblue}{1} {default}won a race against {darkblue}{2}! {lightred}(Surrender)"
+	}
+	"ChallengeFailed2"
+	{
+		"en"        "[{green}RACE{default}] You must be alive to start a challenge."
+	}
+	"ChallengeFailed3"
+	{
+		"en"        "[{green}RACE{default}] You are already in a challenge."
+	}
+	"ChallengeFailed4"
+	{
+		"en"        "[{green}RACE{default}] No valid players found."
+	}
+	"ChallengeFailed6"
+	{
+		"#format"   "{1:s}"
+		"en"        "[{green}RACE{default}] {darkblue}{1} {default}is already in a race"
+	}
+	"ChallengeStarted1"
+	{
+		"en"        "[{green}RACE{default}] Go!"
+	}
+	"ChallengeStarted2"
+	{
+		"en"        "[{green}RACE{default}] If you want to surrender type {purple}!surrender"
+	}
+	"ChallengeStarted3"
+	{
+		"en"        "[{green}RACE{default}] Both of you can type {purple}!abort {default}in chat to cancel the race"
+	}
+	"ChallengeRequestExpired"
+	{
+		"en"        "[{green}RACE{default}] Challenge request expired!"
+	}
+	"ChallengeWon"
+	{
+		"en"        "[{green}RACE{default}] Race won! (your opponent has left the server)"
+	}
+	"ChallengeAborted"
+	{
+		"#format"   "{1:s}"
+		"en"        "[{green}RACE{default}] Race versus {darkblue}{1} {default}aborted."
+	}
+	"ChallengeW"
+	{
+		"#format"   "{1:s},{2:s}"
+		"en"        "[{green}RACE{default}] {darkblue}{1} {default}won a race against {darkblue}{2}"
+	}
+}
