@@ -54,10 +54,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 public void OnClientPutInServer(int client)
 {
 	GetClientAuthId(client, AuthId_Steam2, g_szSteamID[client], MAX_NAME_LENGTH, true);
-}
-
-public void OnMapStart()
-{
+	
 	for(int i = 1; i <= MaxClients; i++)
 	{
 		if(IsValidClient(i))
