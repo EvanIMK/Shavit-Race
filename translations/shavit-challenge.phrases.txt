@@ -48,10 +48,6 @@
 	{
 		"en"        "[{green}RACE{default}] Both of you can type {purple}!abort {default}in chat to cancel the race"
 	}
-	"ChallengeRequestExpired"
-	{
-		"en"        "[{green}RACE{default}] Challenge request expired!"
-	}
 	"ChallengeWon"
 	{
 		"en"        "[{green}RACE{default}] Race won! (your opponent has left the server)"
@@ -65,5 +61,9 @@
 	{
 		"#format"   "{1:s},{2:s}"
 		"en"        "[{green}RACE{default}] {darkblue}{1} {default}won a race against {darkblue}{2}"
+	}	
+	"ChallengeExpire"
+	{
+		"en"        "[{green}RACE{default}] Race request expired"
 	}
 }

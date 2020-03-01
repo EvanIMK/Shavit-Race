@@ -11,8 +11,8 @@ bool g_bChallenge[MAXPLAYERS + 1];
 bool g_bChallenge_Request[MAXPLAYERS + 1];
 int g_CountdownTime[MAXPLAYERS + 1];
 char g_szChallenge_OpponentID[MAXPLAYERS + 1][32];
-Handle gH_Forwards_OnRestart = null;
 char g_szSteamID[MAXPLAYERS + 1][32];
+bool gB_Late = false;
 
 public Plugin myinfo = 
 {
@@ -26,13 +26,29 @@ public void OnPluginStart()
 {
 	LoadTranslations("shavit-challenge.phrases");
 
-    gH_Forwards_OnRestart = CreateGlobalForward("Shavit_OnRestart", ET_Event, Param_Cell, Param_Cell);
-
 	RegConsoleCmd("sm_challenge", Client_Challenge, "[Challenge] allows you to start a race against others");
 	RegConsoleCmd("sm_race", Client_Challenge, "[Challenge] allows you to start a race against others");
 	RegConsoleCmd("sm_accept", Client_Accept, "[Challenge] allows you to accept a challenge request");
 	RegConsoleCmd("sm_surrender", Client_Surrender, "[Challenge] surrender your current challenge");
 	RegConsoleCmd("sm_abort", Client_Abort, "[Challenge] abort your current challenge");
+	
+	if(gB_Late)
+	{
+		for(int i = 1; i <= MaxClients; i++)
+		{
+			if(IsValidClient(i))
+			{
+				OnClientPutInServer(i);
+			}
+		}
+	}
+}
+
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
+{
+	gB_Late = late;
+
+	return APLRes_Success;
 }
 
 public void OnClientPutInServer(int client)
@@ -164,11 +180,14 @@ public Action Client_Accept(int client, int args)
 				Shavit_ChangeClientStyle(client, 0);
 				Shavit_ChangeClientStyle(i, 0);
 				
-				TeleportClient(client, Track_Main);
-				TeleportClient(i, Track_Main);
+				Shavit_RestartTimer(client, Track_Main);
+				Shavit_RestartTimer(i, Track_Main);
 				
-				SetEntityMoveType(i, MOVETYPE_NONE);
 				SetEntityMoveType(client, MOVETYPE_NONE);
+				SetEntityMoveType(i, MOVETYPE_NONE);
+				
+				Shavit_StopTimer(client);
+				Shavit_StopTimer(i);
 				
 				g_CountdownTime[i] = 10;
 				g_CountdownTime[client] = 10;
@@ -186,9 +205,6 @@ public Action Client_Accept(int client, int args)
 				GetClientName(client, szPlayer2, MAX_NAME_LENGTH);
 
 				CPrintToChatAll("[{green}Challenge{default}] Challenge: %s vs. %s", szPlayer1, szPlayer2);
-			
-				Shavit_StopTimer(client);
-				Shavit_StopTimer(i);
 				
 				CreateTimer(1.0, CheckChallenge, i, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
 				CreateTimer(1.0, CheckChallenge, client, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
@@ -237,7 +253,7 @@ public Action Client_Surrender(int client, int args)
 }
 
 public Action Timer_Countdown(Handle timer, any client)
-{	
+{		
 	if (IsValidClient(client) && g_bChallenge[client] && !IsFakeClient(client))
 	{
 		CPrintToChat(client, "[{green}Countdown{default}] %i", g_CountdownTime[client]);
@@ -262,15 +278,9 @@ public Action Timer_Request(Handle timer, any data)
 	
 	if(!g_bChallenge[client])
 	{
+		CPrintToChat(client, "%t", "ChallengeExpire");
 		g_bChallenge_Request[client] = false;
 	}
-}
-void TeleportClient(int client, int track)
-{
-	Call_StartForward(gH_Forwards_OnRestart);
-    Call_PushCell(client);
-    Call_PushCell(track);
-    Call_Finish();
 }
 
 public Action CheckChallenge(Handle timer, any client)
