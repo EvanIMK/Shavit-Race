@@ -56,6 +56,18 @@ public void OnClientPutInServer(int client)
 	GetClientAuthId(client, AuthId_Steam2, g_szSteamID[client], MAX_NAME_LENGTH, true);
 }
 
+public void OnMapStart()
+{
+	for(int i = 1; i <= MaxClients; i++)
+	{
+		if(IsValidClient(i))
+		{
+			g_bChallenge[i] = false;
+			g_bChallenge_Request[i] = false;	
+		}
+	}
+}
+
 public Action Client_Challenge(int client, int args)
 {
 	if (!g_bChallenge[client] && !g_bChallenge_Request[client])
