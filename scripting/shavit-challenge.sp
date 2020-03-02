@@ -339,9 +339,9 @@ public Action CheckChallenge(Handle timer, any client)
 	return Plugin_Continue;
 }
 
-public void Shavit_OnFinish(int client)
+public void Shavit_OnFinish(int client, int track)
 {
-	if(g_bChallenge[client])
+	if(g_bChallenge[client] && (track = Track_Main))
 	{
 		char szNameOpponent[MAX_NAME_LENGTH];
 		char szName[MAX_NAME_LENGTH];
