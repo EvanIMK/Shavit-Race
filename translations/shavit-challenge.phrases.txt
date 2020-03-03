@@ -1,20 +1,24 @@
 "Phrases"
 {	
-	"Challenge1"
+	"ChallengeMenuTitle"
+	{
+		"en"		"Challenge: Select your opponent"
+	}
+	"ChallengeRequestSent"
 	{
 		"#format"   "{1:s}"
 		"en"        "[{green}RACE{default}] Challenge request sent to {darkblue}{1}"
-	}
-	"Challenge2"
+
+	"ChallengeRequestReceive"
 	{
 		"#format"   "{1:s}"
-		"en"        "[{green}RACE{default}] {1} challenged you. You have 20 seconds to {purple}!accept"
+		"en"        "[{green}RACE{default}] {1} challenged you to a race. You have 20 seconds to {purple}!accept"
 	}
-	"Challenge3"
+	"ChallengeAccept"
 	{
 		"en"        "[{green}RACE{default}] Challenge accepted."
 	}
-	"Challenge4"
+	"ChallengeSurrenderAnnounce"
 	{
 		"#format"   "{1:s},{2:s}"
 		"en"        "[{green}RACE{default}] {darkblue}{1} {default}won a race against {darkblue}{2}! {lightred}(Surrender)"
@@ -23,15 +27,15 @@
 	{
 		"en"        "[{green}RACE{default}] You must be alive to start a challenge."
 	}
-	"ChallengeFailed3"
+	"ChallengeInRace"
 	{
 		"en"        "[{green}RACE{default}] You are already in a challenge."
 	}
-	"ChallengeFailed4"
+	"ChallengeNoPlayers"
 	{
 		"en"        "[{green}RACE{default}] No valid players found."
 	}
-	"ChallengeFailed6"
+	"ChallengeOpponentInRace"
 	{
 		"#format"   "{1:s}"
 		"en"        "[{green}RACE{default}] {darkblue}{1} {default}is already in a race"
@@ -57,7 +61,7 @@
 		"#format"   "{1:s}"
 		"en"        "[{green}RACE{default}] Race versus {darkblue}{1} {default}aborted."
 	}
-	"ChallengeW"
+	"ChallengeFinishAnnounce"
 	{
 		"#format"   "{1:s},{2:s}"
 		"en"        "[{green}RACE{default}] {darkblue}{1} {default}won a race against {darkblue}{2}"
@@ -65,5 +69,22 @@
 	"ChallengeExpire"
 	{
 		"en"        "[{green}RACE{default}] Race request expired"
+	}
+	"ChallengeDisagreeAbort"
+	{
+		"en"		"[{green}RACE{default}] You have disagreed to abort the challenge"
+	}
+	"ChallengeAgreeAbort"
+	{
+		"en"		"[{green}RACE{default}] You have agreed to abort the challenge. Waiting for your opponent."
+	}
+	"ChallengeAnnounce"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"[{green}RACE{default}] Challenge {1} vs. {2}"
+	}
+	"ChallengeCountdown"
+		"#format"	"{1:i}"
+		"en"		"[{green}Countdown{default}] {1}"
 	}
 }
