@@ -73,7 +73,7 @@ public Action Client_Challenge(int client, int args)
 		{
 			char szPlayerName[MAX_NAME_LENGTH];
 			Menu menu = new Menu(ChallengeMenuHandler);
-			menu.SetTitle("%T", "ChallengeMenuTitle");
+			menu.SetTitle("%T\n", "ChallengeMenuTitle", client);
 			int playerCount = 0;
 			for (int i = 1; i <= MaxClients; i++)
 			{

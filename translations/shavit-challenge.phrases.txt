@@ -8,7 +8,7 @@
 	{
 		"#format"   "{1:s}"
 		"en"        "[{green}RACE{default}] Challenge request sent to {darkblue}{1}"
-
+	}
 	"ChallengeRequestReceive"
 	{
 		"#format"   "{1:s}"
