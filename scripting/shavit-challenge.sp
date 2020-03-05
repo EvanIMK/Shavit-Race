@@ -4,7 +4,6 @@
 #pragma newdecls required
 #pragma semicolon 1
 
-float gF_Challenge_RequestTime[MAXPLAYERS + 1];
 bool gB_Challenge[MAXPLAYERS + 1];
 bool gB_Challenge_Abort[MAXPLAYERS + 1];
 bool gB_Challenge_Request[MAXPLAYERS + 1];
@@ -19,7 +18,7 @@ public Plugin myinfo =
 	name = "Shavit Race Mode",
 	author = "Evan",
 	description = "Allows players to race each other",
-	version = "0.3.2"
+	version = "0.4.1"
 }
 
 public void OnPluginStart()
@@ -142,7 +141,6 @@ public int ChallengeMenuHandler(Menu menu, MenuAction action, int param1, int pa
 						Format(gS_Challenge_OpponentID[param1], 32, szSteamId);
 						Shavit_PrintToChat(param1, "%T", "ChallengeRequestSent", param1, gS_ChatStrings.sVariable2, szTargetName);
 						Shavit_PrintToChat(i, "%T", "ChallengeRequestReceive", i, gS_ChatStrings.sVariable2, szPlayerName, gS_ChatStrings.sText, gS_ChatStrings.sVariable);
-						gF_Challenge_RequestTime[param1] = GetGameTime();
 						CreateTimer(20.0, Timer_Request, GetClientUserId(param1));
 						gB_Challenge_Request[param1] = true;
 					}
@@ -196,14 +194,14 @@ public Action Client_Accept(int client, int args)
 				GetClientAuthId(i, AuthId_Steam2, gS_Challenge_OpponentID[client], MAX_NAME_LENGTH, true);
 				gB_Challenge_Request[i] = false;
 				
-				gB_Challenge[i] = true;
-				gB_Challenge[client] = true;
-				
 				gB_Challenge_Abort[client] = false;
 				gB_Challenge_Abort[i] = false;
 
 				Shavit_ChangeClientStyle(client, 0);
 				Shavit_ChangeClientStyle(i, 0);
+				
+				gB_Challenge[i] = true;
+				gB_Challenge[client] = true;
 				
 				Shavit_RestartTimer(client, Track_Main);
 				Shavit_RestartTimer(i, Track_Main);
@@ -214,8 +212,8 @@ public Action Client_Accept(int client, int args)
 				Shavit_StopTimer(client);
 				Shavit_StopTimer(i);
 				
-				gI_CountdownTime[i] = 10;
-				gI_CountdownTime[client] = 10;
+				gI_CountdownTime[i] = 6;
+				gI_CountdownTime[client] = 6;
 				
 				CreateTimer(1.0, Timer_Countdown, i, TIMER_REPEAT);
 				CreateTimer(1.0, Timer_Countdown, client, TIMER_REPEAT);
@@ -379,7 +377,7 @@ public void Shavit_OnFinish(int client, int track)
 					{
 						if (IsValidClient(k))
 						{
-							Shavit_PrintToChat(k, "%T", "ChallengeFinishAnnounce", k, gS_ChatStrings.sVariable2, szName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, szNameOpponent);
+							Shavit_PrintToChatAll("%t", "ChallengeFinishAnnounce", gS_ChatStrings.sVariable2, szName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, szNameOpponent);
 						}
 					}
 					
@@ -407,15 +405,7 @@ public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int tr
 					gB_Challenge[client] = false;
 					gB_Challenge[i] = false;
 					GetClientName(i, szNameOpponent, MAX_NAME_LENGTH);
-					for (int k = 1; k <= MaxClients; k++)
-					{
-						if (IsValidClient(k))
-						{
-							Shavit_PrintToChatAll("%t", "ChallengeStyleChange", gS_ChatStrings.sVariable2, szNameOpponent, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, szName, gS_ChatStrings.sWarning);
-						}
-					}
-					
-					break;
+					Shavit_PrintToChatAll("%t", "ChallengeStyleChange", gS_ChatStrings.sVariable2, szNameOpponent, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, szName, gS_ChatStrings.sWarning);
 				}
 			}
 		}	
