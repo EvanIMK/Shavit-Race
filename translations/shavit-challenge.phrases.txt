@@ -91,4 +91,9 @@
 		"#format"	"{1:d}"
 		"en"		"{1}"
 	}
+	"ChallengeStyleChange"
+	{
+		"#format"   "{1:s},{2:s},{3:s},{4:s},{5:s},{6:s}"
+		"en"        "{1}{2} {3}won a race against {4}{5} {6}(Changed style during race)."
+	}
 }

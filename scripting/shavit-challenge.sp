@@ -389,3 +389,35 @@ public void Shavit_OnFinish(int client, int track)
 		}
 	}
 }
+
+public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int track, bool manual)
+{
+	if(gB_Challenge[client])
+	{	
+		char szNameOpponent[MAX_NAME_LENGTH];
+		char szName[MAX_NAME_LENGTH];
+		GetClientName(client, szName, MAX_NAME_LENGTH);
+
+		for (int i = 1; i <= MaxClients; i++)
+		{
+			if (IsValidClient(i) && i != client)
+			{
+				if (StrEqual(gS_SteamID[i], gS_Challenge_OpponentID[client]))
+				{
+					gB_Challenge[client] = false;
+					gB_Challenge[i] = false;
+					GetClientName(i, szNameOpponent, MAX_NAME_LENGTH);
+					for (int k = 1; k <= MaxClients; k++)
+					{
+						if (IsValidClient(k))
+						{
+							Shavit_PrintToChatAll("%t", "ChallengeStyleChange", gS_ChatStrings.sVariable2, szNameOpponent, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, szName, gS_ChatStrings.sWarning);
+						}
+					}
+					
+					break;
+				}
+			}
+		}	
+	}
+}
