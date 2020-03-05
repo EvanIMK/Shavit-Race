@@ -12,8 +12,8 @@
 	}
 	"ChallengeRequestReceive"
 	{
-		"#format"   "{1:s},{2:s},{3:s},{4:s}"
-		"en"        "{1}{2} {3}challenged you to a race. You have 20 seconds to {4}!accept"
+		"#format"   "{1:s},{2:s},{3:s},{4:s},{5:s}"
+		"en"        "{1}{2} {3}challenged you to a race. Style: {4}{5}{6}. You have 20 seconds to {7}!accept"
 		"pl"        "{1}{2} {3}wyzwał Cię. Masz 20 sekund, żeby zaakceptować. Wpisz {4}!accept"
 	}
 	"ChallengeAccept"
@@ -84,7 +84,7 @@
 	"ChallengeAnnounce"
 	{
 		"#format"	"{1:s},{2:s}"
-		"en"		"Challenge {1} vs. {2}"
+		"en"		"Challenge: {1} vs. {2}. Style: {3}{4}."
 	}
 	"ChallengeCountdown"
 	{
