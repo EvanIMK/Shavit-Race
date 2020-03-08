@@ -7,21 +7,21 @@
 bool gB_Challenge[MAXPLAYERS + 1];
 bool gB_Challenge_Abort[MAXPLAYERS + 1];
 bool gB_Challenge_Request[MAXPLAYERS + 1];
-int gI_CountdownTime[MAXPLAYERS + 1];
+bool gB_Late = false;
 char gS_Challenge_OpponentID[MAXPLAYERS + 1][32];
 char gS_SteamID[MAXPLAYERS + 1][32];
-bool gB_Late = false;
-chatstrings_t gS_ChatStrings;
-stylestrings_t gS_StyleStrings[STYLE_LIMIT];
+int gI_CountdownTime[MAXPLAYERS + 1];
 int gI_Styles = 0;
 int gI_ChallengeStyle[MAXPLAYERS + 1];
+chatstrings_t gS_ChatStrings;
+stylestrings_t gS_StyleStrings[STYLE_LIMIT];
 
 public Plugin myinfo = 
 {
 	name = "Shavit Race Mode",
 	author = "Evan",
 	description = "Allows players to race each other",
-	version = "1.0.0"
+	version = "1.0.1"
 }
 
 public void OnPluginStart()
@@ -72,7 +72,6 @@ public void OnClientPutInServer(int client)
 
 public void Shavit_OnChatConfigLoaded()
 {
-	Shavit_GetChatStrings(sMessagePrefix, gS_ChatStrings.sPrefix, sizeof(chatstrings_t::sPrefix));
 	Shavit_GetChatStrings(sMessageText, gS_ChatStrings.sText, sizeof(chatstrings_t::sText));
 	Shavit_GetChatStrings(sMessageWarning, gS_ChatStrings.sWarning, sizeof(chatstrings_t::sWarning));
 	Shavit_GetChatStrings(sMessageVariable, gS_ChatStrings.sVariable, sizeof(chatstrings_t::sVariable));
@@ -90,7 +89,6 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 	for(int i = 0; i < styles; i++)
 	{
 		Shavit_GetStyleStrings(i, sStyleName, gS_StyleStrings[i].sStyleName, sizeof(stylestrings_t::sStyleName));
-		Shavit_GetStyleStrings(i, sShortName, gS_StyleStrings[i].sShortName, sizeof(stylestrings_t::sShortName));
 	}
 
 	gI_Styles = styles;
@@ -102,7 +100,7 @@ public Action Client_Challenge(int client, int args)
 	{
 		if (IsPlayerAlive(client))
 		{
-			char szPlayerName[MAX_NAME_LENGTH];
+			char sPlayerName[MAX_NAME_LENGTH];
 			Menu menu = new Menu(ChallengeMenuHandler);
 			menu.SetTitle("%T\n", "ChallengeMenuTitle", client);
 			int playerCount = 0;
@@ -110,8 +108,8 @@ public Action Client_Challenge(int client, int args)
 			{
 				if (IsValidClient(i) && IsPlayerAlive(i) && i != client && !IsFakeClient(i))
 				{
-					GetClientName(i, szPlayerName, MAX_NAME_LENGTH);
-					menu.AddItem(szPlayerName, szPlayerName);
+					GetClientName(i, sPlayerName, MAX_NAME_LENGTH);
+					menu.AddItem(sPlayerName, sPlayerName);
 					playerCount++;
 				}
 			}
@@ -141,31 +139,30 @@ public int ChallengeMenuHandler(Menu menu, MenuAction action, int param1, int pa
 {
 	if(action == MenuAction_Select)
 	{
-		char info[32];
-		char szPlayerName[MAX_NAME_LENGTH];
-		char szTargetName[MAX_NAME_LENGTH];
-		GetClientName(param1, szPlayerName, MAX_NAME_LENGTH);
-		menu.GetItem(param2, info, sizeof(info));
+		char sInfo[32];
+		char sPlayerName[MAX_NAME_LENGTH];
+		char sTargetName[MAX_NAME_LENGTH];
+		GetClientName(param1, sPlayerName, MAX_NAME_LENGTH);
+		menu.GetItem(param2, sInfo, 32);
 		for(int i = 1; i <= MaxClients; i++)
 		{
 			if (IsValidClient(i) && IsPlayerAlive(i) && i != param1)
 			{
-				GetClientName(i, szTargetName, MAX_NAME_LENGTH);
+				GetClientName(i, sTargetName, MAX_NAME_LENGTH);
 
-				if (StrEqual(info, szTargetName))
+				if (StrEqual(sInfo, sTargetName))
 				{
 					if (!gB_Challenge[i])
 					{
-						char szSteamId[32];
-						GetClientAuthId(i, AuthId_Steam2, szSteamId, MAX_NAME_LENGTH, true);
-						Format(gS_Challenge_OpponentID[param1], 32, szSteamId);
-						SelectStyle(param1);
-						
+						char sSteamId[32];
+						GetClientAuthId(i, AuthId_Steam2, sSteamId, MAX_NAME_LENGTH, true);
+						Format(gS_Challenge_OpponentID[param1], 32, sSteamId);
+						SelectStyle(param1);		
 					}
 					
 					else
 					{
-						Shavit_PrintToChat(param1, "%T", "ChallengeOpponentInRace", param1, gS_ChatStrings.sVariable2, szTargetName, gS_ChatStrings.sText);
+						Shavit_PrintToChat(param1, "%T", "ChallengeOpponentInRace", param1, gS_ChatStrings.sVariable2, sTargetName, gS_ChatStrings.sText);
 					}
 				}
 			}
@@ -204,8 +201,8 @@ public int ChallengeMenuHandler2(Menu submenu, MenuAction action, int param1, in
 	if(action == MenuAction_Select)
 	{
 		char sInfo[8];
-		char szTargetName[32];
-		char szPlayerName[32];
+		char sTargetName[32];
+		char sPlayerName[32];
 		submenu.GetItem(param2, sInfo, 8);
 		int style = StringToInt(sInfo);
 		
@@ -215,12 +212,12 @@ public int ChallengeMenuHandler2(Menu submenu, MenuAction action, int param1, in
 			{
 				if (StrEqual(gS_SteamID[i], gS_Challenge_OpponentID[param1]))
 				{
-					GetClientName(i, szTargetName, MAX_NAME_LENGTH);
-					GetClientName(param1, szPlayerName, MAX_NAME_LENGTH);
+					GetClientName(i, sTargetName, MAX_NAME_LENGTH);
+					GetClientName(param1, sPlayerName, MAX_NAME_LENGTH);
 					gI_ChallengeStyle[i] = style;
 					gI_ChallengeStyle[param1] = style;
-					Shavit_PrintToChat(param1, "%T", "ChallengeRequestSent", param1, gS_ChatStrings.sVariable2, szTargetName);
-					Shavit_PrintToChat(i, "%T", "ChallengeRequestReceive", i, gS_ChatStrings.sVariable2, szPlayerName, gS_ChatStrings.sText, gS_ChatStrings.sStyle, gS_StyleStrings[gI_ChallengeStyle[param1]].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable);		
+					Shavit_PrintToChat(param1, "%T", "ChallengeRequestSent", param1, gS_ChatStrings.sVariable2, sTargetName);
+					Shavit_PrintToChat(i, "%T", "ChallengeRequestReceive", i, gS_ChatStrings.sVariable2, sPlayerName, gS_ChatStrings.sText, gS_ChatStrings.sStyle, gS_StyleStrings[gI_ChallengeStyle[param1]].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable);		
 					CreateTimer(20.0, Timer_Request, GetClientUserId(param1));
 					gB_Challenge_Request[param1] = true;
 				}
@@ -256,14 +253,14 @@ public Action Client_Abort(int client, int args)
 
 public Action Client_Accept(int client, int args)
 {
-	char szSteamId[32];
-	GetClientAuthId(client, AuthId_Steam2, szSteamId, MAX_NAME_LENGTH, true);
+	char sSteamId[32];
+	GetClientAuthId(client, AuthId_Steam2, sSteamId, MAX_NAME_LENGTH, true);
 
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (IsValidClient(i) && IsPlayerAlive(i) && i != client && gB_Challenge_Request[i])
 		{
-			if (StrEqual(szSteamId, gS_Challenge_OpponentID[i]))
+			if (StrEqual(sSteamId, gS_Challenge_OpponentID[i]))
 			{
 				GetClientAuthId(i, AuthId_Steam2, gS_Challenge_OpponentID[client], MAX_NAME_LENGTH, true);
 				gB_Challenge_Request[i] = false;
@@ -295,13 +292,13 @@ public Action Client_Accept(int client, int args)
 				Shavit_PrintToChat(client, "%T", "ChallengeAccept", client);
 				Shavit_PrintToChat(i, "%T", "ChallengeAccept", i);
 				
-				char szPlayer1[MAX_NAME_LENGTH];
-				char szPlayer2[MAX_NAME_LENGTH];
+				char sPlayer1[MAX_NAME_LENGTH];
+				char sPlayer2[MAX_NAME_LENGTH];
 				
-				GetClientName(i, szPlayer1, MAX_NAME_LENGTH);
-				GetClientName(client, szPlayer2, MAX_NAME_LENGTH);
+				GetClientName(i, sPlayer1, MAX_NAME_LENGTH);
+				GetClientName(client, sPlayer2, MAX_NAME_LENGTH);
 
-				Shavit_PrintToChatAll("%t", "ChallengeAnnounce", szPlayer1, szPlayer2, gS_ChatStrings.sStyle, gS_StyleStrings[gI_ChallengeStyle[client]].sStyleName);
+				Shavit_PrintToChatAll("%t", "ChallengeAnnounce", sPlayer1, sPlayer2, gS_ChatStrings.sStyle, gS_StyleStrings[gI_ChallengeStyle[client]].sStyleName);
 				
 				CreateTimer(1.0, CheckChallenge, i, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
 				CreateTimer(1.0, CheckChallenge, client, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
@@ -314,20 +311,20 @@ public Action Client_Accept(int client, int args)
 
 public Action Client_Surrender(int client, int args)
 {
-	char szSteamIdOpponent[32];
-	char szNameOpponent[MAX_NAME_LENGTH];
-	char szName[MAX_NAME_LENGTH];
+	char sSteamIdOpponent[32];
+	char sNameOpponent[MAX_NAME_LENGTH];
+	char sName[MAX_NAME_LENGTH];
 	if (gB_Challenge[client])
 	{
-		GetClientName(client, szName, MAX_NAME_LENGTH);
+		GetClientName(client, sName, MAX_NAME_LENGTH);
 		for (int i = 1; i <= MaxClients; i++)
 		{
 			if (IsValidClient(i) && i != client)
 			{
-				GetClientAuthId(i, AuthId_Steam2, szSteamIdOpponent, MAX_NAME_LENGTH, true);
-				if (StrEqual(szSteamIdOpponent, gS_Challenge_OpponentID[client]))
+				GetClientAuthId(i, AuthId_Steam2, sSteamIdOpponent, MAX_NAME_LENGTH, true);
+				if (StrEqual(sSteamIdOpponent, gS_Challenge_OpponentID[client]))
 				{
-					GetClientName(i, szNameOpponent, MAX_NAME_LENGTH);
+					GetClientName(i, sNameOpponent, MAX_NAME_LENGTH);
 					gB_Challenge[i] = false;
 					gB_Challenge[client] = false;
 
@@ -335,7 +332,7 @@ public Action Client_Surrender(int client, int args)
 					{
 						if (IsValidClient(j) && IsValidEntity(j))
 						{
-							Shavit_PrintToChat(j, "%T", "ChallengeSurrenderAnnounce", j, gS_ChatStrings.sVariable2, szNameOpponent, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, szName, gS_ChatStrings.sWarning);
+							Shavit_PrintToChat(j, "%T", "ChallengeSurrenderAnnounce", j, gS_ChatStrings.sVariable2, sNameOpponent, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sName, gS_ChatStrings.sWarning);
 						}
 					}
 
@@ -385,8 +382,8 @@ public Action Timer_Request(Handle timer, any data)
 public Action CheckChallenge(Handle timer, any client)
 {
 	bool oppenent = false;
-	char szName[32];
-	char szNameTarget[32];
+	char sName[32];
+	char sNameTarget[32];
 	if (gB_Challenge[client] && IsValidClient(client) && !IsFakeClient(client))
 	{
 		for (int i = 1; i <= MaxClients; i++)
@@ -398,14 +395,14 @@ public Action CheckChallenge(Handle timer, any client)
 					oppenent = true;
 					if (gB_Challenge_Abort[i] && gB_Challenge_Abort[client])
 					{
-						GetClientName(i, szNameTarget, 32);
-						GetClientName(client, szName, 32);
+						GetClientName(i, sNameTarget, 32);
+						GetClientName(client, sName, 32);
 						
 						gB_Challenge[client] = false;
 						gB_Challenge[i] = false;
 						
-						Shavit_PrintToChat(client, "%T", "ChallengeAborted", client, gS_ChatStrings.sVariable2, szNameTarget, gS_ChatStrings.sText);
-						Shavit_PrintToChat(i, "%T", "ChallengeAborted",  i, gS_ChatStrings.sVariable2, szName, gS_ChatStrings.sText);
+						Shavit_PrintToChat(client, "%T", "ChallengeAborted", client, gS_ChatStrings.sVariable2, sNameTarget, gS_ChatStrings.sText);
+						Shavit_PrintToChat(i, "%T", "ChallengeAborted",  i, gS_ChatStrings.sVariable2, sName, gS_ChatStrings.sText);
 						
 						SetEntityMoveType(client, MOVETYPE_WALK);
 						SetEntityMoveType(i, MOVETYPE_WALK);
@@ -434,9 +431,9 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 {
 	if(gB_Challenge[client] && track == Track_Main)
 	{
-		char szNameOpponent[MAX_NAME_LENGTH];
-		char szName[MAX_NAME_LENGTH];
-		GetClientName(client, szName, MAX_NAME_LENGTH);
+		char sNameOpponent[MAX_NAME_LENGTH];
+		char sName[MAX_NAME_LENGTH];
+		GetClientName(client, sName, MAX_NAME_LENGTH);
 
 		for (int i = 1; i <= MaxClients; i++)
 		{
@@ -446,8 +443,8 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 				{
 					gB_Challenge[client] = false;
 					gB_Challenge[i] = false;
-					GetClientName(i, szNameOpponent, MAX_NAME_LENGTH);
-					Shavit_PrintToChatAll("%t", "ChallengeFinishAnnounce", gS_ChatStrings.sVariable2, szName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, szNameOpponent);
+					GetClientName(i, sNameOpponent, MAX_NAME_LENGTH);
+					Shavit_PrintToChatAll("%t", "ChallengeFinishAnnounce", gS_ChatStrings.sVariable2, sName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sNameOpponent);
 				}
 			}
 		}
@@ -458,9 +455,9 @@ public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int tr
 {
 	if(gB_Challenge[client])
 	{	
-		char szNameOpponent[MAX_NAME_LENGTH];
-		char szName[MAX_NAME_LENGTH];
-		GetClientName(client, szName, MAX_NAME_LENGTH);
+		char sNameOpponent[MAX_NAME_LENGTH];
+		char sName[MAX_NAME_LENGTH];
+		GetClientName(client, sName, MAX_NAME_LENGTH);
 
 		for (int i = 1; i <= MaxClients; i++)
 		{
@@ -470,8 +467,8 @@ public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int tr
 				{
 					gB_Challenge[client] = false;
 					gB_Challenge[i] = false;
-					GetClientName(i, szNameOpponent, MAX_NAME_LENGTH);
-					Shavit_PrintToChatAll("%t", "ChallengeStyleChange", gS_ChatStrings.sVariable2, szNameOpponent, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, szName, gS_ChatStrings.sWarning);
+					GetClientName(i, sNameOpponent, MAX_NAME_LENGTH);
+					Shavit_PrintToChatAll("%t", "ChallengeStyleChange", gS_ChatStrings.sVariable2, sNameOpponent, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sName, gS_ChatStrings.sWarning);
 				}
 			}
 		}	
