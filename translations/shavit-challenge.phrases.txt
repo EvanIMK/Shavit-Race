@@ -4,6 +4,14 @@
 	{
 		"en"		"Challenge: Select your opponent"
 	}
+	"ChallengeMenuTitle2"
+	{
+		"en"		"Challenge: Select race style"
+	}
+	"ChallengeMenuTitle3"
+	{
+		"en"		"Challenge: Select race track"
+	}
 	"ChallengeRequestSent"
 	{
 		"#format"   "{1:s},{2:s}"
@@ -12,8 +20,8 @@
 	}
 	"ChallengeRequestReceive"
 	{
-		"#format"   "{1:s},{2:s},{3:s},{4:s},{5:s},{6:s},{7:s}"
-		"en"        "{1}{2} {3}challenged you to a race. Style: {4}{5}{6}. You have 20 seconds to {7}!accept"
+		"#format"   "{1:s},{2:s},{3:s},{4:s},{5:s},{6:s},{7:s},{8:s},{9:s},{10:s}"
+		"en"        "{1}{2} {3}challenged you to a race. Style: {4}{5}{6}, Track: {7}{8}{9}. You have 20 seconds to {10}!accept"
 		"pl"        "{1}{2} {3}wyzwał Cię. Masz 20 sekund, żeby zaakceptować. Wpisz {4}!accept"
 	}
 	"ChallengeAccept"
@@ -83,8 +91,8 @@
 	}
 	"ChallengeAnnounce"
 	{
-		"#format"	"{1:s},{2:s},{3:s},{4:s}"
-		"en"		"Challenge: {1} vs. {2}. Style: {3}{4}."
+		"#format"	"{1:s},{2:s}{3:s},{4:s},{5:s},{6:s},{7:s}"
+		"en"		"Challenge: {1} vs. {2}. Style: {3}{4}{5}. Track: {6}{7}"
 	}
 	"ChallengeCountdown"
 	{
