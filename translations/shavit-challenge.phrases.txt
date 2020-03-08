@@ -83,7 +83,7 @@
 	}
 	"ChallengeAnnounce"
 	{
-		"#format"	"{1:s},{2:s}{3:s},{4:s}"
+		"#format"	"{1:s},{2:s},{3:s},{4:s}"
 		"en"		"Challenge: {1} vs. {2}. Style: {3}{4}."
 	}
 	"ChallengeCountdown"
