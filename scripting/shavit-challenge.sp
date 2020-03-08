@@ -14,9 +14,7 @@ bool gB_Late = false;
 chatstrings_t gS_ChatStrings;
 stylestrings_t gS_StyleStrings[STYLE_LIMIT];
 int gI_Styles = 0;
-int gI_Style[MAXPLAYERS+1];
 int gI_ChallengeStyle[MAXPLAYERS + 1];
-
 
 public Plugin myinfo = 
 {
@@ -222,7 +220,7 @@ public int ChallengeMenuHandler2(Menu submenu, MenuAction action, int param1, in
 					gI_ChallengeStyle[i] = style;
 					gI_ChallengeStyle[param1] = style;
 					Shavit_PrintToChat(param1, "%T", "ChallengeRequestSent", param1, gS_ChatStrings.sVariable2, szTargetName);
-					Shavit_PrintToChat(i, "%T", "ChallengeRequestReceive", i, gS_ChatStrings.sVariable2, szPlayerName, gS_ChatStrings.sText, gS_ChatStrings.sStyle, gS_StyleStrings[gI_Style[style]].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable);		
+					Shavit_PrintToChat(i, "%T", "ChallengeRequestReceive", i, gS_ChatStrings.sVariable2, szPlayerName, gS_ChatStrings.sText, gS_ChatStrings.sStyle, gS_StyleStrings[gI_ChallengeStyle[param1]].sStyleName, gS_ChatStrings.sText, gS_ChatStrings.sVariable);		
 					CreateTimer(20.0, Timer_Request, GetClientUserId(param1));
 					gB_Challenge_Request[param1] = true;
 				}
@@ -303,7 +301,7 @@ public Action Client_Accept(int client, int args)
 				GetClientName(i, szPlayer1, MAX_NAME_LENGTH);
 				GetClientName(client, szPlayer2, MAX_NAME_LENGTH);
 
-				Shavit_PrintToChatAll("%t", "ChallengeAnnounce", szPlayer1, szPlayer2, gS_ChatStrings.sStyle, gS_StyleStrings[gI_Style[i]].sStyleName);
+				Shavit_PrintToChatAll("%t", "ChallengeAnnounce", szPlayer1, szPlayer2, gS_ChatStrings.sStyle, gS_StyleStrings[gI_ChallengeStyle[client]].sStyleName);
 				
 				CreateTimer(1.0, CheckChallenge, i, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
 				CreateTimer(1.0, CheckChallenge, client, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
@@ -364,7 +362,7 @@ public Action Timer_Countdown(Handle timer, any client)
 		{
 			SetEntityMoveType(client, MOVETYPE_WALK);
 			Shavit_PrintToChat(client, "%T", "ChallengeStarted1", client);
-			Shavit_PrintToChat(client, "%T", "ChallengeStarted2", client, gS_ChatStrings.sVariable2);
+			Shavit_PrintToChat(client, "%T", "ChallengeStarted2", client, gS_ChatStrings.sVariable);
 			Shavit_PrintToChat(client, "%T", "ChallengeStarted3", client, gS_ChatStrings.sVariable, gS_ChatStrings.sText);
 			return Plugin_Stop;
 		}
@@ -377,7 +375,7 @@ public Action Timer_Request(Handle timer, any data)
 {	
 	int client = GetClientOfUserId(data);
 	
-	if(!gB_Challenge[client])
+	if(!gB_Challenge[client] && gB_Challenge_Request[client])
 	{
 		Shavit_PrintToChat(client, "%T", "ChallengeExpire", client);
 		gB_Challenge_Request[client] = false;
@@ -432,9 +430,9 @@ public Action CheckChallenge(Handle timer, any client)
 	return Plugin_Continue;
 }
 
-public void Shavit_OnFinish(int client, int track)
+public void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync, int track)
 {
-	if(gB_Challenge[client] && (track = Track_Main))
+	if(gB_Challenge[client] && track == Track_Main)
 	{
 		char szNameOpponent[MAX_NAME_LENGTH];
 		char szName[MAX_NAME_LENGTH];
@@ -449,7 +447,6 @@ public void Shavit_OnFinish(int client, int track)
 					gB_Challenge[client] = false;
 					gB_Challenge[i] = false;
 					GetClientName(i, szNameOpponent, MAX_NAME_LENGTH);
-
 					Shavit_PrintToChatAll("%t", "ChallengeFinishAnnounce", gS_ChatStrings.sVariable2, szName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, szNameOpponent);
 				}
 			}
