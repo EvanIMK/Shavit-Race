@@ -8,14 +8,19 @@ bool gB_Challenge[MAXPLAYERS + 1];
 bool gB_Challenge_Abort[MAXPLAYERS + 1];
 bool gB_Challenge_Request[MAXPLAYERS + 1];
 bool gB_Late = false;
-bool gB_Bonus = false;
+
 char gS_Challenge_OpponentID[MAXPLAYERS + 1][32];
 char gS_SteamID[MAXPLAYERS + 1][32];
+char gS_MySQLPrefix[32];
+
 int gI_CountdownTime[MAXPLAYERS + 1];
 int gI_Styles = 0;
 int gI_ChallengeStyle[MAXPLAYERS + 1];
 int gI_Track[MAXPLAYERS + 1];
 int gI_ClientTrack[MAXPLAYERS + 1];
+
+Database gH_SQL = null;
+
 chatstrings_t gS_ChatStrings;
 stylestrings_t gS_StyleStrings[STYLE_LIMIT];
 
@@ -32,11 +37,12 @@ public void OnPluginStart()
 	LoadTranslations("shavit-challenge.phrases");
 	LoadTranslations("shavit-common.phrases");
 
-	RegConsoleCmd("sm_challenge", Client_Challenge, "[Challenge] allows you to start a race against others");
-	RegConsoleCmd("sm_race", Client_Challenge, "[Challenge] allows you to start a race against others");
-	RegConsoleCmd("sm_accept", Client_Accept, "[Challenge] allows you to accept a challenge request");
-	RegConsoleCmd("sm_surrender", Client_Surrender, "[Challenge] surrender your current challenge");
-	RegConsoleCmd("sm_abort", Client_Abort, "[Challenge] abort your current challenge");
+	RegConsoleCmd("sm_challenge", Command_Challenge, "[Challenge] allows you to start a race against others");
+	RegConsoleCmd("sm_race", Command_Challenge, "[Challenge] allows you to start a race against others");
+	RegConsoleCmd("sm_accept", Command_Accept, "[Challenge] allows you to accept a challenge request");
+	RegConsoleCmd("sm_surrender", Command_Surrender, "[Challenge] surrender your current challenge");
+	RegConsoleCmd("sm_abort", Command_Abort, "[Challenge] abort your current challenge");
+	RegAdminCmd("sm_racetableupdate", Command_RaceUpdate, ADMFLAG_ROOT, "Updates user table to count race wins/losses");
 	
 	if(gB_Late)
 	{
@@ -51,6 +57,8 @@ public void OnPluginStart()
 		Shavit_OnChatConfigLoaded();
 		Shavit_OnStyleConfigLoaded(-1);
 	}
+	
+	SQL_DBConnect();
 }
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
@@ -72,12 +80,6 @@ public void OnClientPutInServer(int client)
 			gB_Challenge_Request[i] = false;	
 		}
 	}
-}
-
-public void OnMapStart()
-{
-	//not optimal. need a shavit_onzonesloaded or something
-	CreateTimer(15.0, Timer_CheckBonus);
 }
 
 public void Shavit_OnChatConfigLoaded()
@@ -104,7 +106,7 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 	gI_Styles = styles;
 }
 
-public Action Client_Challenge(int client, int args)
+public Action Command_Challenge(int client, int args)
 {
 	if (!gB_Challenge[client] && !gB_Challenge_Request[client])
 	{
@@ -223,12 +225,12 @@ public int ChallengeMenuHandler2(Menu menu, MenuAction action, int param1, int p
 					gI_ChallengeStyle[i] = style;
 					gI_ChallengeStyle[param1] = style;
 					
-					if(gB_Bonus)
+					if(Shavit_ZoneExists(Zone_Start, Track_Bonus))
 					{
 						SelectTrack(param1);
 					}
 					
-					else if(!gB_Bonus)
+					else
 					{						
 						char sTargetName[32];
 						char sPlayerName[32];	
@@ -316,7 +318,7 @@ public int ChallengeMenuHandler3(Menu menu, MenuAction action, int param1, int p
 	}
 }
 
-public Action Client_Accept(int client, int args)
+public Action Command_Accept(int client, int args)
 {
 	char sSteamId[32];
 	char sTrack[8];
@@ -387,7 +389,7 @@ public Action Client_Accept(int client, int args)
 	return Plugin_Handled;
 }
 
-public Action Client_Surrender(int client, int args)
+public Action Command_Surrender(int client, int args)
 {
 	char sSteamIdOpponent[32];
 	char sNameOpponent[MAX_NAME_LENGTH];
@@ -411,6 +413,8 @@ public Action Client_Surrender(int client, int args)
 						if (IsValidClient(j) && IsValidEntity(j))
 						{
 							Shavit_PrintToChat(j, "%T", "ChallengeSurrenderAnnounce", j, gS_ChatStrings.sVariable2, sNameOpponent, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sName, gS_ChatStrings.sWarning);
+							UpdateLosses(client);
+							UpdateWins(i);
 						}
 					}
 
@@ -426,7 +430,7 @@ public Action Client_Surrender(int client, int args)
 	return Plugin_Handled;
 }
 
-public Action Client_Abort(int client, int args)
+public Action Command_Abort(int client, int args)
 {
 	if (gB_Challenge[client])
 	{
@@ -444,6 +448,23 @@ public Action Client_Abort(int client, int args)
 	}
 	
 	return Plugin_Handled;
+}
+
+public Action Command_RaceUpdate(int client, int args)
+{
+	char sQuery[128];
+	FormatEx(sQuery, 128, "ALTER TABLE `%susers` ADD COLUMN `race_win` INT NOT NULL DEFAULT 0 AFTER `points`, ADD COLUMN `race_loss` INT NOT NULL DEFAULT 0 AFTER `race_win`;", gS_MySQLPrefix);
+	gH_SQL.Query(SQL_UpdateRaceTables, sQuery, 0, DBPrio_High);
+}
+
+public void SQL_UpdateRaceTables(Database db, DBResultSet results, const char[] error, DataPack data)
+{
+	if(results == null)
+	{
+		LogError("Timer (race, update users table) error! Reason: %s", error);
+
+		return;
+	}
 }
 
 public Action Timer_Countdown(Handle timer, any client)
@@ -474,14 +495,6 @@ public Action Timer_Request(Handle timer, any data)
 	{
 		Shavit_PrintToChat(client, "%T", "ChallengeExpire", client);
 		gB_Challenge_Request[client] = false;
-	}
-}
-
-public Action Timer_CheckBonus(Handle timer, any data)
-{
-	if(Shavit_ZoneExists(Zone_Start, Track_Bonus))
-	{
-		gB_Bonus = true;
 	}
 }
 
@@ -524,6 +537,7 @@ public Action CheckChallenge(Handle timer, any client)
 			if (IsValidClient(client))
 			{
 				Shavit_PrintToChat(client, "%T", "ChallengeWon", client);
+				UpdateWins(client);
 			}
 			
 			return Plugin_Stop;
@@ -551,6 +565,8 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 					gB_Challenge[i] = false;
 					GetClientName(i, sNameOpponent, MAX_NAME_LENGTH);
 					Shavit_PrintToChatAll("%t", "ChallengeFinishAnnounce", gS_ChatStrings.sVariable2, sName, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sNameOpponent);
+					UpdateWins(client);
+					UpdateLosses(i);
 				}
 			}
 		}
@@ -575,9 +591,49 @@ public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int tr
 					gB_Challenge[i] = false;
 					GetClientName(i, sNameOpponent, MAX_NAME_LENGTH);
 					Shavit_PrintToChatAll("%t", "ChallengeStyleChange", gS_ChatStrings.sVariable2, sNameOpponent, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sName, gS_ChatStrings.sWarning);
+					UpdateLosses(client);
+					UpdateWins(i);
 				}
 			}
 		}	
+	}
+}
+
+void UpdateWins(int client)
+{
+	int iSteamID = GetSteamAccountID(client);
+	
+	char sQuery[256];
+	FormatEx(sQuery, 256, "UPDATE %susers SET race_win = race_win + 1 WHERE auth = %d;", gS_MySQLPrefix, iSteamID);
+	gH_SQL.Query(SQL_UpdateWins_Callback, sQuery, 0, DBPrio_Low);
+}
+
+void UpdateLosses(int client)
+{
+	int iSteamID = GetSteamAccountID(client);
+	
+	char sQuery[256];
+	FormatEx(sQuery, 256, "UPDATE %susers SET race_loss = race_loss + 1 WHERE auth = %d;", gS_MySQLPrefix, iSteamID);
+	gH_SQL.Query(SQL_UpdateLosses_Callback, sQuery, 0, DBPrio_Low);
+}
+
+public void SQL_UpdateWins_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
+{
+	if(results == null)
+	{
+		LogError("Timer (race, update win count) error! Reason: %s", error);
+
+		return;
+	}
+}
+
+public void SQL_UpdateLosses_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
+{
+	if(results == null)
+	{
+		LogError("Timer (race, update loss count) error! Reason: %s", error);
+
+		return;
 	}
 }
 
@@ -593,4 +649,10 @@ void GetTrackName(int client, int track, char[] output, int size)
 	static char sTrack[16];
 	FormatEx(sTrack, 16, "Track_%d", track);
 	FormatEx(output, size, "%T", sTrack, client);
+}
+
+void SQL_DBConnect()
+{
+	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
+	gH_SQL = GetTimerDatabaseHandle();
 }
