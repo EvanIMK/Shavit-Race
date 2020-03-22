@@ -8,6 +8,7 @@ bool gB_Challenge[MAXPLAYERS + 1];
 bool gB_Challenge_Abort[MAXPLAYERS + 1];
 bool gB_Challenge_Request[MAXPLAYERS + 1];
 bool gB_Late = false;
+bool g_bClientFrozen[MAXPLAYERS + 1];
 
 char gS_Challenge_OpponentID[MAXPLAYERS + 1][32];
 char gS_SteamID[MAXPLAYERS + 1][32];
@@ -65,7 +66,15 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 {
 	gB_Late = late;
 
+	RegPluginLibrary("shavitchallenge");
+	CreateNative("shavitchallenge_IsClientFrozen", Native_IsClientFrozen);
+
 	return APLRes_Success;
+}
+
+public int Native_IsClientFrozen(Handle plugin, int numParams)
+{
+	return g_bClientFrozen[GetNativeCell(1)];
 }
 
 public void OnClientPutInServer(int client)
@@ -347,6 +356,8 @@ public Action Command_Accept(int client, int args)
 				
 				gI_ClientTrack[client] = gI_Track[i];
 				gI_ClientTrack[i] = gI_Track[i];
+
+				g_bClientFrozen[client] = true;
 				
 				SetEntityMoveType(client, MOVETYPE_NONE);
 				SetEntityMoveType(i, MOVETYPE_NONE);
@@ -417,6 +428,7 @@ public Action Command_Surrender(int client, int args)
 							UpdateWins(i);
 						}
 					}
+					g_bClientFrozen[client] = false;
 
 					SetEntityMoveType(client, MOVETYPE_WALK);
 					SetEntityMoveType(i, MOVETYPE_WALK);
@@ -476,6 +488,7 @@ public Action Timer_Countdown(Handle timer, any client)
 		
 		if (gI_CountdownTime[client] < 1)
 		{
+			g_bClientFrozen[client] = false;
 			SetEntityMoveType(client, MOVETYPE_WALK);
 			Shavit_PrintToChat(client, "%T", "ChallengeStarted1", client);
 			Shavit_PrintToChat(client, "%T", "ChallengeStarted2", client, gS_ChatStrings.sVariable);
@@ -523,6 +536,7 @@ public Action CheckChallenge(Handle timer, any client)
 						Shavit_PrintToChat(client, "%T", "ChallengeAborted", client, gS_ChatStrings.sVariable2, sNameTarget, gS_ChatStrings.sText);
 						Shavit_PrintToChat(i, "%T", "ChallengeAborted",  i, gS_ChatStrings.sVariable2, sName, gS_ChatStrings.sText);
 						
+						g_bClientFrozen[client] = false;
 						SetEntityMoveType(client, MOVETYPE_WALK);
 						SetEntityMoveType(i, MOVETYPE_WALK);
 					}
