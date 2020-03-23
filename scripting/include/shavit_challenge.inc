@@ -11,7 +11,7 @@
  * @param client    Client's id
  * @return          True / False
  */
-native bool shavitchallenge_IsClientFrozen(int client);
+native bool Challenge_IsClientFrozen(int client);
 
 public SharedPlugin:__pl_shavitchallenge =
 {
@@ -26,5 +26,5 @@ public SharedPlugin:__pl_shavitchallenge =
 
 public void __pl_shavitchallenge_SetNTVOptional()
 {
-	MarkNativeAsOptional("shavitchallenge_IsClientFrozen");
+	MarkNativeAsOptional("Challenge_IsClientFrozen");
 }

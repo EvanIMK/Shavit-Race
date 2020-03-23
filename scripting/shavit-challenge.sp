@@ -1,5 +1,6 @@
 #include <sourcemod>
 #include <shavit>
+#include <shavit_challenge>
 
 #pragma newdecls required
 #pragma semicolon 1
@@ -67,7 +68,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	gB_Late = late;
 
 	RegPluginLibrary("shavitchallenge");
-	CreateNative("Shavit_IsClientFrozen", Native_IsClientFrozen);
+	CreateNative("Challenge_IsClientFrozen", Native_IsClientFrozen);
 
 	return APLRes_Success;
 }
@@ -485,6 +486,13 @@ public Action Timer_Countdown(Handle timer, any client)
 {		
 	if (IsValidClient(client) && gB_Challenge[client] && !IsFakeClient(client))
 	{
+		MoveType movetype = GetEntityMoveType(client);
+		if(Challenge_IsClientFrozen(client) && movetype != MOVETYPE_NONE)
+		{
+			Shavit_RestartTimer(client, gI_Track[client]);
+			SetEntityMoveType(client, MOVETYPE_NONE);
+		}
+		
 		Shavit_PrintToChat(client, "%T", "ChallengeCountdown", client, gI_CountdownTime[client]);
 		gI_CountdownTime[client]--;
 		
@@ -566,7 +574,7 @@ public Action CheckChallenge(Handle timer, any client)
 
 public void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync, int track)
 {
-	if(gB_Challenge[client] && track == gI_ClientTrack[client])
+	if(gB_Challenge[client] && track == gI_ClientTrack[client] && !Shavit_IsPracticeMode(client))
 	{
 		char sNameOpponent[MAX_NAME_LENGTH];
 		char sName[MAX_NAME_LENGTH];
