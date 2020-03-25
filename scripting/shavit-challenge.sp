@@ -31,7 +31,7 @@ public Plugin myinfo =
 	name = "Shavit Race Mode",
 	author = "Evan",
 	description = "Allows players to race each other",
-	version = "1.1.0"
+	version = "1.2"
 }
 
 public void OnPluginStart()
@@ -352,6 +352,9 @@ public Action Command_Accept(int client, int args)
 				gB_Challenge[client] = true;
 				gB_Challenge[i] = true;
 				
+				SetEntityMoveType(client, MOVETYPE_NONE);
+				SetEntityMoveType(i, MOVETYPE_NONE);
+				
 				Shavit_RestartTimer(client, gI_Track[i]);
 				Shavit_RestartTimer(i, gI_Track[i]);
 				
@@ -360,12 +363,6 @@ public Action Command_Accept(int client, int args)
 
 				gB_ClientFrozen[client] = true;
 				gB_ClientFrozen[i] = true;
-				
-				SetEntityMoveType(client, MOVETYPE_NONE);
-				SetEntityMoveType(i, MOVETYPE_NONE);
-				
-				Shavit_StopTimer(client);
-				Shavit_StopTimer(i);
 				
 				gI_CountdownTime[client] = 5;
 				gI_CountdownTime[i] = 5;
@@ -404,7 +401,7 @@ public Action Command_Accept(int client, int args)
 
 public Action Command_Surrender(int client, int args)
 {
-	char sSteamIdOpponent[32];
+	char sSteamIdOpponent[MAX_NAME_LENGTH];
 	char sNameOpponent[MAX_NAME_LENGTH];
 	char sName[MAX_NAME_LENGTH];
 	if (gB_Challenge[client])
@@ -420,21 +417,17 @@ public Action Command_Surrender(int client, int args)
 					GetClientName(i, sNameOpponent, MAX_NAME_LENGTH);
 					gB_Challenge[i] = false;
 					gB_Challenge[client] = false;
-
-					for (int j = 1; j <= MaxClients; j++)
-					{
-						if (IsValidClient(j) && IsValidEntity(j))
-						{
-							Shavit_PrintToChat(j, "%T", "ChallengeSurrenderAnnounce", j, gS_ChatStrings.sVariable2, sNameOpponent, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sName, gS_ChatStrings.sWarning);
-							UpdateLosses(client);
-							UpdateWins(i);
-						}
-					}
+					
 					gB_ClientFrozen[client] = false;
 					gB_ClientFrozen[i] = false;
-
+					
 					SetEntityMoveType(client, MOVETYPE_WALK);
 					SetEntityMoveType(i, MOVETYPE_WALK);
+					
+					UpdateLosses(client);
+					UpdateWins(i);
+
+					Shavit_PrintToChatAll("%t", "ChallengeSurrenderAnnounce", gS_ChatStrings.sVariable2, sNameOpponent, gS_ChatStrings.sText, gS_ChatStrings.sVariable2, sName, gS_ChatStrings.sWarning);
 					
 					i = MaxClients + 1;
 				}
@@ -483,16 +476,9 @@ public void SQL_UpdateRaceTables(Database db, DBResultSet results, const char[] 
 }
 
 public Action Timer_Countdown(Handle timer, any client)
-{		
+{			
 	if (IsValidClient(client) && gB_Challenge[client] && !IsFakeClient(client))
 	{
-		MoveType movetype = GetEntityMoveType(client);
-		if(Challenge_IsClientFrozen(client) && movetype != MOVETYPE_NONE)
-		{
-			Shavit_RestartTimer(client, gI_Track[client]);
-			SetEntityMoveType(client, MOVETYPE_NONE);
-		}
-		
 		Shavit_PrintToChat(client, "%T", "ChallengeCountdown", client, gI_CountdownTime[client]);
 		gI_CountdownTime[client]--;
 		
@@ -521,11 +507,13 @@ public Action Timer_Request(Handle timer, any data)
 	}
 }
 
-public Action CheckChallenge(Handle timer, any client)
+public Action CheckChallenge(Handle timer, any data)
 {
+	int client = GetClientOfUserId(data);
 	bool oppenent = false;
 	char sName[32];
 	char sNameTarget[32];
+	
 	if (gB_Challenge[client] && IsValidClient(client) && !IsFakeClient(client))
 	{
 		for (int i = 1; i <= MaxClients; i++)
@@ -548,6 +536,7 @@ public Action CheckChallenge(Handle timer, any client)
 						
 						gB_ClientFrozen[client] = false;
 						gB_ClientFrozen[i] = false;
+						
 						SetEntityMoveType(client, MOVETYPE_WALK);
 						SetEntityMoveType(i, MOVETYPE_WALK);
 					}
@@ -633,15 +622,6 @@ void UpdateWins(int client)
 	gH_SQL.Query(SQL_UpdateWins_Callback, sQuery, 0, DBPrio_Low);
 }
 
-void UpdateLosses(int client)
-{
-	int iSteamID = GetSteamAccountID(client);
-	
-	char sQuery[256];
-	FormatEx(sQuery, 256, "UPDATE %susers SET race_loss = race_loss + 1 WHERE auth = %d;", gS_MySQLPrefix, iSteamID);
-	gH_SQL.Query(SQL_UpdateLosses_Callback, sQuery, 0, DBPrio_Low);
-}
-
 public void SQL_UpdateWins_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
 {
 	if(results == null)
@@ -650,6 +630,15 @@ public void SQL_UpdateWins_Callback(Database db, DBResultSet results, const char
 
 		return;
 	}
+}
+
+void UpdateLosses(int client)
+{
+	int iSteamID = GetSteamAccountID(client);
+	
+	char sQuery[256];
+	FormatEx(sQuery, 256, "UPDATE %susers SET race_loss = race_loss + 1 WHERE auth = %d;", gS_MySQLPrefix, iSteamID);
+	gH_SQL.Query(SQL_UpdateLosses_Callback, sQuery, 0, DBPrio_Low);
 }
 
 public void SQL_UpdateLosses_Callback(Database db, DBResultSet results, const char[] error, DataPack data)
