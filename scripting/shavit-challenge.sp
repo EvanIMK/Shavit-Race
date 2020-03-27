@@ -8,8 +8,8 @@
 bool gB_Challenge[MAXPLAYERS + 1];
 bool gB_Challenge_Abort[MAXPLAYERS + 1];
 bool gB_Challenge_Request[MAXPLAYERS + 1];
-bool gB_Late = false;
 bool gB_ClientFrozen[MAXPLAYERS + 1];
+bool gB_Late = false;
 
 char gS_Challenge_OpponentID[MAXPLAYERS + 1][32];
 char gS_SteamID[MAXPLAYERS + 1][32];
@@ -22,6 +22,7 @@ int gI_Track[MAXPLAYERS + 1];
 int gI_ClientTrack[MAXPLAYERS + 1];
 
 Database gH_SQL = null;
+ConVar gCV_CountdownTime = null;
 
 chatstrings_t gS_ChatStrings;
 stylestrings_t gS_StyleStrings[STYLE_LIMIT];
@@ -46,6 +47,10 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_abort", Command_Abort, "[Challenge] abort your current challenge");
 	RegAdminCmd("sm_racetableupdate", Command_RaceUpdate, ADMFLAG_ROOT, "Updates user table to count race wins/losses");
 	
+	gCV_CountdownTime = CreateConVar("challenge_countdown_time", "5", "Length of race countdown (in seconds).", 0, true, 0.0);
+	
+	AutoExecConfig(true, "shavit_challenge");
+	
 	if(gB_Late)
 	{
 		for(int i = 1; i <= MaxClients; i++)
@@ -68,28 +73,19 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	gB_Late = late;
 
 	RegPluginLibrary("shavitchallenge");
+	
 	CreateNative("Challenge_IsClientFrozen", Native_IsClientFrozen);
+	CreateNative("Challenge_IsClientInRace", Native_IsClientInRace);
 
 	return APLRes_Success;
-}
-
-public int Native_IsClientFrozen(Handle plugin, int numParams)
-{
-	return gB_ClientFrozen[GetNativeCell(1)];
 }
 
 public void OnClientPutInServer(int client)
 {
 	GetClientAuthId(client, AuthId_Steam2, gS_SteamID[client], MAX_NAME_LENGTH, true);
 	
-	for(int i = 1; i <= MaxClients; i++)
-	{
-		if(IsValidClient(i))
-		{
-			gB_Challenge[i] = false;
-			gB_Challenge_Request[i] = false;	
-		}
-	}
+	gB_Challenge[client] = false;
+	gB_Challenge_Request[client] = false;	
 }
 
 public void Shavit_OnChatConfigLoaded()
@@ -118,7 +114,7 @@ public void Shavit_OnStyleConfigLoaded(int styles)
 
 public Action Command_Challenge(int client, int args)
 {
-	if (!gB_Challenge[client] && !gB_Challenge_Request[client])
+	if (!Challenge_IsClientInRace(client) && !gB_Challenge_Request[client])
 	{
 		if (IsPlayerAlive(client))
 		{
@@ -174,7 +170,7 @@ public int ChallengeMenuHandler(Menu menu, MenuAction action, int param1, int pa
 
 				if (StrEqual(sInfo, sTargetName))
 				{
-					if (!gB_Challenge[i])
+					if (!Challenge_IsClientInRace(i))
 					{
 						char sSteamId[32];
 						GetClientAuthId(i, AuthId_Steam2, sSteamId, MAX_NAME_LENGTH, true);
@@ -364,8 +360,8 @@ public Action Command_Accept(int client, int args)
 				gB_ClientFrozen[client] = true;
 				gB_ClientFrozen[i] = true;
 				
-				gI_CountdownTime[client] = 5;
-				gI_CountdownTime[i] = 5;
+				gI_CountdownTime[client] = gCV_CountdownTime.IntValue;
+				gI_CountdownTime[i] = gCV_CountdownTime.IntValue;
 				
 				CreateTimer(1.0, Timer_Countdown, client, TIMER_REPEAT);
 				CreateTimer(1.0, Timer_Countdown, i, TIMER_REPEAT);
@@ -404,15 +400,15 @@ public Action Command_Surrender(int client, int args)
 	char sSteamIdOpponent[MAX_NAME_LENGTH];
 	char sNameOpponent[MAX_NAME_LENGTH];
 	char sName[MAX_NAME_LENGTH];
-	if (gB_Challenge[client])
+	if(Challenge_IsClientInRace(client))
 	{
 		GetClientName(client, sName, MAX_NAME_LENGTH);
-		for (int i = 1; i <= MaxClients; i++)
+		for(int i = 1; i <= MaxClients; i++)
 		{
-			if (IsValidClient(i) && i != client)
+			if(IsValidClient(i) && i != client)
 			{
 				GetClientAuthId(i, AuthId_Steam2, sSteamIdOpponent, MAX_NAME_LENGTH, true);
-				if (StrEqual(sSteamIdOpponent, gS_Challenge_OpponentID[client]))
+				if(StrEqual(sSteamIdOpponent, gS_Challenge_OpponentID[client]))
 				{
 					GetClientName(i, sNameOpponent, MAX_NAME_LENGTH);
 					gB_Challenge[i] = false;
@@ -440,7 +436,7 @@ public Action Command_Surrender(int client, int args)
 
 public Action Command_Abort(int client, int args)
 {
-	if (gB_Challenge[client])
+	if (Challenge_IsClientInRace(client))
 	{
 		if (gB_Challenge_Abort[client])
 		{
@@ -477,7 +473,7 @@ public void SQL_UpdateRaceTables(Database db, DBResultSet results, const char[] 
 
 public Action Timer_Countdown(Handle timer, any client)
 {			
-	if (IsValidClient(client) && gB_Challenge[client] && !IsFakeClient(client))
+	if (IsValidClient(client) && Challenge_IsClientInRace(client) && !IsFakeClient(client))
 	{
 		Shavit_PrintToChat(client, "%T", "ChallengeCountdown", client, gI_CountdownTime[client]);
 		gI_CountdownTime[client]--;
@@ -500,7 +496,7 @@ public Action Timer_Request(Handle timer, any data)
 {	
 	int client = GetClientOfUserId(data);
 	
-	if(!gB_Challenge[client] && gB_Challenge_Request[client])
+	if(!Challenge_IsClientInRace(client)  && gB_Challenge_Request[client])
 	{
 		Shavit_PrintToChat(client, "%T", "ChallengeExpire", client);
 		gB_Challenge_Request[client] = false;
@@ -514,7 +510,7 @@ public Action CheckChallenge(Handle timer, any data)
 	char sName[32];
 	char sNameTarget[32];
 	
-	if (gB_Challenge[client] && IsValidClient(client) && !IsFakeClient(client))
+	if (Challenge_IsClientInRace(client) && IsValidClient(client) && !IsFakeClient(client))
 	{
 		for (int i = 1; i <= MaxClients; i++)
 		{
@@ -563,7 +559,7 @@ public Action CheckChallenge(Handle timer, any data)
 
 public void Shavit_OnFinish(int client, int style, float time, int jumps, int strafes, float sync, int track)
 {
-	if(gB_Challenge[client] && track == gI_ClientTrack[client] && !Shavit_IsPracticeMode(client))
+	if(Challenge_IsClientInRace(client) && track == gI_ClientTrack[client] && !Shavit_IsPracticeMode(client))
 	{
 		char sNameOpponent[MAX_NAME_LENGTH];
 		char sName[MAX_NAME_LENGTH];
@@ -589,7 +585,7 @@ public void Shavit_OnFinish(int client, int style, float time, int jumps, int st
 
 public void Shavit_OnStyleChanged(int client, int oldstyle, int newstyle, int track, bool manual)
 {
-	if(gB_Challenge[client])
+	if(Challenge_IsClientInRace(client))
 	{	
 		char sNameOpponent[MAX_NAME_LENGTH];
 		char sName[MAX_NAME_LENGTH];
@@ -669,4 +665,14 @@ void SQL_DBConnect()
 {
 	GetTimerSQLPrefix(gS_MySQLPrefix, 32);
 	gH_SQL = GetTimerDatabaseHandle();
+}
+
+public int Native_IsClientFrozen(Handle plugin, int numParams)
+{
+	return gB_ClientFrozen[GetNativeCell(1)];
+}
+
+public int Native_IsClientInRace(Handle plugin, int numParams)
+{
+	return gB_Challenge[GetNativeCell(1)];
 }
